@@ -1,0 +1,44 @@
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama/ollama:/root/.ollama  # Ensures persistence for Ollama data
+      - ./ollama-webui:/ollama  # Mounts the web UI directory
+    stdin_open: true  # Keeps stdin open for interaction
+    tty: true  # Allocates a pseudo-TTY for interactive mode
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    volumes:
+      - open-webui:/app/backend/data
+    # network_mode: "host"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    restart: always
+    ports:
+      - "8080:8080"
+
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    command: --run-once open-webui
+    restart: "no"
+
+volumes:
+  ollama:
+  open-webui:
